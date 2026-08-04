@@ -1,0 +1,51 @@
+---
+name: CI
+
+# yamllint disable rule:truthy
+on:
+  push:
+  pull_request:
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Download modules
+        run: go mod download
+      - name: Test AWS-style and custom-endpoint storage
+        run: go test ./internal/storage -run 'TestS3(AWSStyle)?ConfigurationMapping'
+      - name: Test
+        run: go test ./...
+      - name: Test with race detector
+        run: go test -race ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Build
+        run: go build ./...
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Set up build tools
+        uses: jdx/mise-action@v3
+      - name: Build release artifacts
+        run: VERSION=0.0.0-ci mise run build:deb
+      - name: Verify checksums
+        run: cd dist && sha256sum --check checksums.txt
+      - name: Inspect Debian packages
+        run: |
+          dpkg-deb --info dist/deb-s3_0.0.0-ci_amd64.deb
+          dpkg-deb --info dist/deb-s3_0.0.0-ci_arm64.deb
+      - name: Install amd64 package
+        run: |
+          sudo apt-get install ./dist/deb-s3_0.0.0-ci_amd64.deb
+          test "$(deb-s3 --version)" = "deb-s3 version 0.0.0-ci"

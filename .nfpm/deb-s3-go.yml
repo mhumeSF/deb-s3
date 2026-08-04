@@ -1,0 +1,20 @@
+---
+name: deb-s3
+arch: ${GOARCH}
+platform: linux
+version: ${VERSION}
+version_schema: none
+section: admin
+priority: optional
+maintainer: Stefan Heitmüller <stefan.heitmueller@gmx.com>
+description: Create and manage APT repositories on S3
+homepage: https://github.com/deb-s3/deb-s3
+license: MIT
+recommends:
+  - gnupg
+contents:
+  - src: ${NFPM_BINARY}
+    dst: /usr/bin/deb-s3
+    expand: true
+    file_info:
+      mode: 0755

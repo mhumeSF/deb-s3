@@ -1,0 +1,15 @@
+Origin: Example Repository
+Codename: stable
+Date: Tue, 04 Aug 2026 14:15:16 UTC
+Architectures: amd64 i386
+Components: main contrib
+Suite: stable
+MD5Sum:
+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa               12 main/binary-amd64/Packages
+ bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb               34 main/binary-amd64/Packages.gz
+SHA1:
+ cccccccccccccccccccccccccccccccccccccccc               12 main/binary-amd64/Packages
+ dddddddddddddddddddddddddddddddddddddddd               34 main/binary-amd64/Packages.gz
+SHA256:
+ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee               12 main/binary-amd64/Packages
+ ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff               34 main/binary-amd64/Packages.gz

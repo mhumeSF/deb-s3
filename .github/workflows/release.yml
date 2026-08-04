@@ -1,0 +1,42 @@
+---
+# yamllint disable rule:line-length
+name: Release
+
+# yamllint disable rule:truthy
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+      - name: Build release artifacts
+        run: VERSION="${GITHUB_REF_NAME#v}" mise run build:deb
+      - name: Verify checksums
+        run: cd dist && sha256sum --check checksums.txt
+      - name: Test amd64 package
+        run: |
+          mise implode
+          sudo apt-get install ./dist/deb-s3_*_amd64.deb
+          test "$(deb-s3 --version)" = "deb-s3 version ${GITHUB_REF_NAME#v}"
+          deb-s3 --help >/dev/null
+      - name: Preserve Debian packages as workflow artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: deb
+          path: dist/*.deb
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${GITHUB_REF_NAME}" dist/* --clobber
