@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"slices"
 
 	"github.com/deb-s3/deb-s3/internal/storage"
 )
@@ -37,7 +38,7 @@ func (r *Release) MissingManifests() ([]*Manifest, error) {
 	for _, component := range r.Components {
 		for _, architecture := range releaseArchitectures {
 			packagesPath := component + "/binary-" + architecture + "/Packages"
-			if _, exists := r.Files[packagesPath]; exists || !contains(r.Architectures, architecture) {
+			if _, exists := r.Files[packagesPath]; exists || !slices.Contains(r.Architectures, architecture) {
 				continue
 			}
 			manifest := NewManifest(r.store, ManifestOptions{
@@ -111,13 +112,4 @@ func (r *Release) Publish(ctx context.Context, onTransfer func(string)) error {
 		return fmt.Errorf("store clear-signed Release %q: %w", inReleaseFilename, err)
 	}
 	return nil
-}
-
-func contains(values []string, value string) bool {
-	for _, existing := range values {
-		if existing == value {
-			return true
-		}
-	}
-	return false
 }

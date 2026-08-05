@@ -226,7 +226,8 @@ func readControlTar(reader io.Reader, maxControlFileSize int64) ([]byte, error) 
 		if cleanName != "control" {
 			continue
 		}
-		if header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeRegA {
+		// archive/tar normalizes legacy TypeRegA headers to TypeReg on read.
+		if header.Typeflag != tar.TypeReg {
 			return nil, &FormatError{Reason: "control tar member is not a regular file"}
 		}
 		if header.Size > maxControlFileSize {

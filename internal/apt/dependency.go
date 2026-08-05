@@ -93,6 +93,9 @@ func debianizeOperator(operator string) string {
 	}
 }
 
+// numericVersion treats non-numeric segments as 0, so constraint expansion
+// (pessimistic and exact-match bounds) is only meaningful for purely numeric
+// versions; suffixed versions like "1.2~rc1" expand to approximate bounds.
 func numericVersion(version string) []int {
 	parts := strings.Split(version, ".")
 	numbers := make([]int, len(parts))
