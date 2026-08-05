@@ -37,10 +37,6 @@ func newUploadCommand(cfg *config.Config, newStore storeFactory) *cobra.Command 
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_, err := upload.ExpandFiles(args)
-			if err != nil {
-				return err
-			}
 			signer, err := configuredSigner(cfg)
 			if err != nil {
 				return err
@@ -49,23 +45,8 @@ func newUploadCommand(cfg *config.Config, newStore storeFactory) *cobra.Command 
 			if err != nil {
 				return err
 			}
-			component := cfg.Component
-			if cfg.Section != "" {
-				component = cfg.Section
-				fmt.Fprintln(cmd.ErrOrStderr(), "===> WARNING: The --section/-s argument is deprecated, please use --component/-m.")
-			}
-			var origin, suite *string
-			persistent := cmd.Root().PersistentFlags()
-			if persistent.Changed("origin") {
-				origin = &cfg.Origin
-			}
-			if persistent.Changed("suite") {
-				suite = &cfg.Suite
-			}
-			var byHash *bool
-			if persistent.Changed("by-hash") || persistent.Changed("no-by-hash") {
-				byHash = &cfg.ByHash
-			}
+			component := componentFor(cmd, cfg)
+			origin, suite := originSuiteOverrides(cmd, cfg)
 			progress := upload.Progress{Warn: func(message string) {
 				fmt.Fprintln(cmd.ErrOrStderr(), message)
 			}}
@@ -79,8 +60,8 @@ func newUploadCommand(cfg *config.Config, newStore storeFactory) *cobra.Command 
 					Codename: cfg.Codename, Component: component, Origin: origin, Suite: suite,
 					Architecture: architecture, ArchitectureSet: cmd.Flags().Changed("arch"),
 					PreserveVersions: preserveVersions, FailIfExists: failIfExists,
-					SkipPackageUpload: skipPackageUpload, CacheControl: cfg.CacheControl, ByHash: byHash,
-					Signer: signer,
+					SkipPackageUpload: skipPackageUpload, CacheControl: cfg.CacheControl,
+					ByHash: byHashOption(cmd, cfg), Signer: signer,
 				})
 			})
 		},
@@ -309,14 +290,7 @@ func newDeleteCommand(cfg *config.Config, newStore storeFactory) *cobra.Command 
 			if err != nil {
 				return err
 			}
-			var origin, suite *string
-			persistent := cmd.Root().PersistentFlags()
-			if persistent.Changed("origin") {
-				origin = &cfg.Origin
-			}
-			if persistent.Changed("suite") {
-				suite = &cfg.Suite
-			}
+			origin, suite := originSuiteOverrides(cmd, cfg)
 			versionsSet := cmd.Flags().Changed("versions")
 			repository := manage.Repository{Store: store, Progress: manageProgress(cmd, cfg)}
 			return withRepositoryLock(cmd, cfg, store, lock, cfg.Codename, func(ctx context.Context) error {
@@ -362,6 +336,20 @@ func byHashOption(cmd *cobra.Command, cfg *config.Config) *bool {
 		return nil
 	}
 	return &cfg.ByHash
+}
+
+// originSuiteOverrides returns --origin/--suite values only when the flags
+// were provided, so values already present in a Release file are preserved
+// otherwise.
+func originSuiteOverrides(cmd *cobra.Command, cfg *config.Config) (origin, suite *string) {
+	persistent := cmd.Root().PersistentFlags()
+	if persistent.Changed("origin") {
+		origin = &cfg.Origin
+	}
+	if persistent.Changed("suite") {
+		suite = &cfg.Suite
+	}
+	return origin, suite
 }
 
 func configuredSigner(cfg *config.Config) (apt.ReleaseSigner, error) {
@@ -430,14 +418,7 @@ func newVerifyCommand(cfg *config.Config, newStore storeFactory) *cobra.Command 
 			if err != nil {
 				return err
 			}
-			var origin, suite *string
-			persistent := cmd.Root().PersistentFlags()
-			if persistent.Changed("origin") {
-				origin = &cfg.Origin
-			}
-			if persistent.Changed("suite") {
-				suite = &cfg.Suite
-			}
+			origin, suite := originSuiteOverrides(cmd, cfg)
 			progress := maintenance.Progress{}
 			if !cfg.Quiet {
 				progress.Log = func(message string) { fmt.Fprintf(cmd.OutOrStdout(), ">> %s\n", message) }

@@ -32,6 +32,9 @@ func executeCommand(root *cobra.Command, args []string, stdout, stderr io.Writer
 		if errors.Is(err, ErrPackagesMissing) {
 			return 1
 		}
+		// Command errors are printed as user-facing CLI output, which is why
+		// commands deliberately phrase some of them as full sentences rather
+		// than following Go error-string conventions.
 		fmt.Fprintf(stderr, "!! %v\n", err)
 		return 1
 	}

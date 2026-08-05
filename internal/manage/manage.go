@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/deb-s3/deb-s3/internal/apt"
@@ -91,7 +92,7 @@ func (r Repository) Copy(ctx context.Context, options CopyOptions) error {
 		if pack.Name != options.Package {
 			continue
 		}
-		if options.VersionsSet && !contains(options.Versions, pack.FullVersion()) {
+		if options.VersionsSet && !slices.Contains(options.Versions, pack.FullVersion()) {
 			continue
 		}
 		selected = append(selected, pack)
@@ -162,10 +163,7 @@ func (r Repository) Delete(ctx context.Context, options DeleteOptions) error {
 		changed = append(changed, manifest)
 	}
 	if totalDeleted == 0 {
-		if options.VersionsSet {
-			return fmt.Errorf("%w: %s versions %s could not be found", ErrNoPackagesDeleted, options.Package, strings.Join(options.Versions, ", "))
-		}
-		return fmt.Errorf("%w: %s not found", ErrNoPackagesDeleted, options.Package)
+		return ErrNoPackagesDeleted
 	}
 	r.log("Uploading new manifests to S3")
 	if err := r.publishMetadata(ctx, release, changed); err != nil {
@@ -177,15 +175,6 @@ func (r Repository) Delete(ctx context.Context, options DeleteOptions) error {
 
 func (r Repository) publishMetadata(ctx context.Context, release *apt.Release, manifests []*apt.Manifest) error {
 	return apt.PublishMetadata(ctx, release, manifests, r.Progress.Transfer)
-}
-
-func contains(values []string, value string) bool {
-	for _, existing := range values {
-		if existing == value {
-			return true
-		}
-	}
-	return false
 }
 
 func (r Repository) log(message string) {
