@@ -120,6 +120,46 @@ func TestExtraFieldsAreNormalizedAndDeterministic(t *testing.T) {
 	}
 }
 
+func TestMultiLineExtraFieldsRoundTrip(t *testing.T) {
+	input := strings.Join([]string{
+		"Package: example",
+		"Version: 1.0",
+		"Architecture: amd64",
+		"Filename: pool/example.deb",
+		"Description: example",
+		"Tag: role::program, implemented-in::c,",
+		" interface::commandline",
+		" .",
+		" network::client",
+		"",
+	}, "\n")
+	pack, err := ParsePackage(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, err := pack.Render("stable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(output, "Tag: role::program, implemented-in::c,\n interface::commandline\n .\n network::client\n") {
+		t.Fatalf("multi-line extra field was not folded:\n%s", output)
+	}
+	reparsed, err := ParsePackage(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(reparsed.ExtraFields, pack.ExtraFields) {
+		t.Fatalf("extra fields did not survive a round trip:\n%#v\nwant %#v", reparsed.ExtraFields, pack.ExtraFields)
+	}
+	rerendered, err := reparsed.Render("stable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rerendered != output {
+		firstDifference(t, output, rerendered)
+	}
+}
+
 func TestRelationshipFieldsRoundTripInTemplateOrder(t *testing.T) {
 	input := strings.Join([]string{
 		"Package: example",

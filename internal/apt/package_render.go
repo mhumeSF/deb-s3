@@ -64,11 +64,27 @@ func (p *Package) Render(codename string) (string, error) {
 	return output.String(), nil
 }
 
+// writeField folds multi-line values into control-format continuation lines,
+// mirroring how ParseParagraph unfolds them: continuation lines are indented
+// with a single space and empty lines become " .".
 func writeField(output *strings.Builder, name, value string) {
+	lines := splitValueLines(value)
+	if len(lines) == 0 {
+		lines = []string{""}
+	}
 	output.WriteString(name)
 	output.WriteString(": ")
-	output.WriteString(value)
+	output.WriteString(lines[0])
 	output.WriteByte('\n')
+	for _, line := range lines[1:] {
+		if strings.TrimSpace(line) == "" {
+			output.WriteString(" .\n")
+		} else {
+			output.WriteByte(' ')
+			output.WriteString(line)
+			output.WriteByte('\n')
+		}
+	}
 }
 
 func writeOptionalField(output *strings.Builder, name string, value *string) {
@@ -82,24 +98,10 @@ func writeDescription(output *strings.Builder, description *string) {
 	if description != nil {
 		value = *description
 	}
-	lines := rubySplitLines(value)
-	firstLine := ""
-	if len(lines) > 0 {
-		firstLine = lines[0]
-	}
-	writeField(output, "Description", firstLine)
-	for _, line := range lines[1:] {
-		if strings.TrimSpace(line) == "" {
-			output.WriteString(" .\n")
-		} else {
-			output.WriteByte(' ')
-			output.WriteString(line)
-			output.WriteByte('\n')
-		}
-	}
+	writeField(output, "Description", value)
 }
 
-func rubySplitLines(value string) []string {
+func splitValueLines(value string) []string {
 	if value == "" {
 		return nil
 	}
