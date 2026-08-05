@@ -45,6 +45,8 @@ type CleanOptions struct {
 }
 
 type CleanResult struct {
+	// Manifests counts the Packages indexes scanned for references, across
+	// every codename, since copies reference pool objects between codenames.
 	Manifests  int
 	Referenced int
 	Deleted    []string
@@ -121,48 +123,43 @@ func (r Repository) Clean(ctx context.Context, options CleanOptions) (CleanResul
 	if r.Store == nil {
 		return CleanResult{}, errors.New("cannot clean without an object store")
 	}
-	distsPrefix, err := scopedPrefix("dists", options.Codename)
-	if err != nil {
-		return CleanResult{}, err
-	}
 	poolPrefix, err := scopedPrefix("pool", options.Codename)
 	if err != nil {
 		return CleanResult{}, err
 	}
+	// Copies between codenames are metadata-only: the destination manifest
+	// keeps referencing the source codename's pool objects. References must
+	// therefore be collected from every codename's manifests, not only the
+	// codename whose pool is being cleaned.
 	r.log("Retrieving existing manifests")
-	objects, err := r.Store.List(ctx, distsPrefix)
+	objects, err := r.Store.List(ctx, "dists/")
 	if err != nil {
 		return CleanResult{}, fmt.Errorf("list repository manifests: %w", err)
 	}
-	type manifestLocation struct {
-		component    string
-		architecture string
-	}
-	locations := make([]manifestLocation, 0)
+	manifestKeys := make([]string, 0)
 	for _, object := range objects {
-		relative := strings.TrimPrefix(object.Key, distsPrefix)
-		parts := strings.Split(relative, "/")
-		if len(parts) != 3 || parts[2] != "Packages" || !strings.HasPrefix(parts[1], "binary-") {
+		if path.Base(object.Key) != "Packages" || !strings.HasPrefix(path.Base(path.Dir(object.Key)), "binary-") {
 			continue
 		}
-		architecture := strings.TrimPrefix(parts[1], "binary-")
-		if parts[0] == "" || architecture == "" {
-			continue
-		}
-		locations = append(locations, manifestLocation{component: parts[0], architecture: architecture})
+		manifestKeys = append(manifestKeys, object.Key)
 	}
 	referenced := make(map[string]struct{})
-	for _, location := range locations {
-		manifest, err := apt.RetrieveManifest(ctx, r.Store, apt.ManifestOptions{
-			Codename: options.Codename, Component: location.component, Architecture: location.architecture,
-		})
+	for _, key := range manifestKeys {
+		data, err := r.Store.Get(ctx, key)
 		if err != nil {
-			return CleanResult{}, fmt.Errorf("retrieve %s/%s manifest for clean: %w", location.component, location.architecture, err)
+			return CleanResult{}, fmt.Errorf("retrieve manifest %q for clean: %w", key, err)
 		}
-		for _, pack := range manifest.Packages {
-			filename, err := pack.RepositoryFilename(options.Codename)
+		packages, err := apt.ParsePackages(string(data))
+		if err != nil {
+			return CleanResult{}, fmt.Errorf("parse manifest %q for clean: %w", key, err)
+		}
+		for _, pack := range packages {
+			// Index entries always carry a Filename field; the codename
+			// argument is only consulted when deriving a path for a local
+			// package file, which cannot happen for parsed manifests.
+			filename, err := pack.RepositoryFilename("")
 			if err != nil {
-				return CleanResult{}, fmt.Errorf("resolve referenced package %s_%s: %w", pack.Name, pack.FullVersion(), err)
+				return CleanResult{}, fmt.Errorf("resolve package %s_%s referenced by %q: %w", pack.Name, pack.FullVersion(), key, err)
 			}
 			normalized, err := storage.JoinKey("", filename)
 			if err != nil {
@@ -176,7 +173,7 @@ func (r Repository) Clean(ctx context.Context, options CleanOptions) (CleanResul
 	if err != nil {
 		return CleanResult{}, fmt.Errorf("list package pool: %w", err)
 	}
-	result := CleanResult{Manifests: len(locations), Referenced: len(referenced)}
+	result := CleanResult{Manifests: len(manifestKeys), Referenced: len(referenced)}
 	for _, object := range poolObjects {
 		if _, exists := referenced[object.Key]; exists {
 			continue

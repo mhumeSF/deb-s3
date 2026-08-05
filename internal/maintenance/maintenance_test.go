@@ -96,7 +96,7 @@ func TestCleanDeletesOnlyUnreferencedExactCodenamePoolObjects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Manifests != 2 || result.Referenced != 3 || !reflect.DeepEqual(result.Deleted, []string{"pool/stable/unreferenced.deb"}) {
+	if result.Manifests != 4 || result.Referenced != 4 || !reflect.DeepEqual(result.Deleted, []string{"pool/stable/unreferenced.deb"}) {
 		t.Fatalf("Clean() = %#v", result)
 	}
 	if !reflect.DeepEqual(details, []string{"Deleting pool/stable/unreferenced.deb"}) {
@@ -106,6 +106,7 @@ func TestCleanDeletesOnlyUnreferencedExactCodenamePoolObjects(t *testing.T) {
 		"pool/stable/referenced-amd64.deb",
 		"pool/stable/referenced-arm64.deb",
 		"pool/stable/shared.deb",
+		"pool/stable/copied.deb",
 		"pool/stable-old/unreferenced.deb",
 		"pool/testing/unreferenced.deb",
 		"dists/stable/main/binary-amd64/by-hash/SHA256/deadbeef",
@@ -225,7 +226,17 @@ func cleanupRepository(t *testing.T) *storage.MemoryStore {
 	if err := other.Publish(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
+	// Copies are metadata-only, so another codename's manifest can reference
+	// objects in this codename's pool.
+	copied := apt.NewManifest(store, apt.ManifestOptions{Codename: "testing", Component: "main", Architecture: "amd64"})
+	copied.Packages = []*apt.Package{
+		maintenancePackage("copied", "1.0", "1", "amd64", "pool/stable/copied.deb"),
+	}
+	if err := copied.Publish(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
 	objects := map[string]string{
+		"pool/stable/copied.deb": "referenced only from the testing codename",
 		"pool/stable/referenced-amd64.deb":                       "amd64",
 		"pool/stable/referenced-arm64.deb":                       "arm64",
 		"pool/stable/shared.deb":                                 "shared",
