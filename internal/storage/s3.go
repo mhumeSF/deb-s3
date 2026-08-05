@@ -51,9 +51,8 @@ func NewS3Store(ctx context.Context, cfg appconfig.Config) (*S3Store, error) {
 		}
 	}
 
-	loadOptions := []func(*awsconfig.LoadOptions) error{}
-	if cfg.S3Region != "" {
-		loadOptions = append(loadOptions, awsconfig.WithRegion(cfg.S3Region))
+	loadOptions := []func(*awsconfig.LoadOptions) error{
+		awsconfig.WithRegion(cfg.S3Region),
 	}
 	if cfg.AccessKeyID != "" {
 		loadOptions = append(loadOptions, awsconfig.WithCredentialsProvider(
@@ -74,9 +73,6 @@ func NewS3Store(ctx context.Context, cfg appconfig.Config) (*S3Store, error) {
 	awsCfg, err := awsconfig.LoadDefaultConfig(ctx, loadOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("load AWS configuration: %w", err)
-	}
-	if awsCfg.Region == "" {
-		awsCfg.Region = appconfig.DefaultRegion
 	}
 	client := s3.NewFromConfig(awsCfg, func(options *s3.Options) {
 		options.UsePathStyle = cfg.ForcePathStyle

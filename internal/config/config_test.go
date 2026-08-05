@@ -13,8 +13,8 @@ func TestDefaults(t *testing.T) {
 	if cfg.Component != "main" {
 		t.Fatalf("Component = %q, want main", cfg.Component)
 	}
-	if cfg.S3Region != "" {
-		t.Fatalf("S3Region = %q, want empty so the AWS configuration chain resolves it", cfg.S3Region)
+	if cfg.S3Region != "us-east-1" {
+		t.Fatalf("S3Region = %q, want us-east-1", cfg.S3Region)
 	}
 	if cfg.Visibility != "public" {
 		t.Fatalf("Visibility = %q, want public", cfg.Visibility)
