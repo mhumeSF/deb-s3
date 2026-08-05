@@ -44,7 +44,6 @@ type Options struct {
 	CacheControl   string
 	Reporter       func(WaitInfo)
 	Now            func() time.Time
-	ReleaseTimeout time.Duration
 }
 
 type Manager struct {
@@ -152,23 +151,6 @@ func (m Manager) Current(ctx context.Context, codename string) (*Owner, error) {
 	return decodeOwner(body)
 }
 
-func (m Manager) WithLock(ctx context.Context, codename string, operation func(context.Context) error) (returnErr error) {
-	if operation == nil {
-		return errors.New("lock operation cannot be nil")
-	}
-	handle, err := m.Acquire(ctx, codename)
-	if err != nil {
-		return err
-	}
-	options := m.optionsWithDefaults()
-	defer func() {
-		releaseContext, cancel := context.WithTimeout(context.WithoutCancel(ctx), options.ReleaseTimeout)
-		defer cancel()
-		returnErr = errors.Join(returnErr, handle.Release(releaseContext))
-	}()
-	return operation(ctx)
-}
-
 func (h *Handle) Owner() Owner { return h.owner }
 
 func (h *Handle) Release(ctx context.Context) error {
@@ -236,24 +218,15 @@ func (m Manager) optionsWithDefaults() Options {
 	if options.Now == nil {
 		options.Now = time.Now
 	}
-	if options.ReleaseTimeout <= 0 {
-		options.ReleaseTimeout = 30 * time.Second
-	}
 	return options
 }
 
 func retryDelay(initial, maximum time.Duration, attempt int) time.Duration {
 	delay := initial
 	for step := 1; step < attempt && delay < maximum; step++ {
-		if delay > maximum/2 {
-			return maximum
-		}
 		delay *= 2
 	}
-	if delay > maximum {
-		return maximum
-	}
-	return delay
+	return min(delay, maximum)
 }
 
 func newOwner(now func() time.Time) (Owner, error) {

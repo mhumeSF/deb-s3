@@ -169,18 +169,14 @@ func TestAcquireRejectsStoreWithoutConditionalDelete(t *testing.T) {
 	}
 }
 
-func TestWithLockReleasesAfterOperationError(t *testing.T) {
+func TestReleaseAllowsSubsequentAcquire(t *testing.T) {
 	store := storage.NewMemoryStore("")
-	manager := Manager{Store: store, Options: Options{Owner: testOwner("owner")}}
-	operationError := errors.New("operation failed")
-	err := manager.WithLock(context.Background(), "stable", func(context.Context) error {
-		return operationError
-	})
-	if !errors.Is(err, operationError) {
-		t.Fatalf("WithLock() error = %v", err)
+	handle, err := (Manager{Store: store, Options: Options{Owner: testOwner("owner")}}).Acquire(context.Background(), "stable")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if _, err := manager.Current(context.Background(), "stable"); !errors.Is(err, storage.ErrNotFound) {
-		t.Fatalf("lock remains after operation error: %v", err)
+	if err := handle.Release(context.Background()); err != nil {
+		t.Fatal(err)
 	}
 	second, err := (Manager{Store: store, Options: Options{Owner: testOwner("second")}}).Acquire(context.Background(), "stable")
 	if err != nil {
