@@ -45,11 +45,13 @@ type Config struct {
 	ChecksumWhenRequired bool
 }
 
+// New leaves S3Region empty so the AWS configuration chain (AWS_REGION,
+// AWS_DEFAULT_REGION, shared config profiles) can supply the region;
+// DefaultRegion applies only when the chain resolves nothing.
 func New() Config {
 	return Config{
 		Codename:    DefaultCodename,
 		Component:   DefaultComponent,
-		S3Region:    DefaultRegion,
 		Visibility:  DefaultVisibility,
 		GPGProvider: DefaultGPGProvider,
 	}

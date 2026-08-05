@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/deb-s3/deb-s3/internal/buildinfo"
 	"github.com/deb-s3/deb-s3/internal/config"
@@ -47,9 +46,6 @@ func NewRootCommand() *cobra.Command {
 
 func newRootCommand(newStore storeFactory) *cobra.Command {
 	cfg := config.New()
-	if region := os.Getenv("AWS_DEFAULT_REGION"); region != "" {
-		cfg.S3Region = region
-	}
 
 	root := &cobra.Command{
 		Use:           "deb-s3",
@@ -95,7 +91,7 @@ func addGlobalFlags(root *cobra.Command, cfg *config.Config) {
 	f.StringVar(&cfg.SecretAccessKey, "secret-access-key", "", "Secret key for connecting to S3")
 	f.StringVar(&cfg.SessionToken, "session-token", "", "Optional session token for connecting to S3")
 	f.StringVar(&cfg.Endpoint, "endpoint", "", "S3 API endpoint URL")
-	f.StringVar(&cfg.S3Region, "s3-region", cfg.S3Region, "Region for connecting to S3")
+	f.StringVar(&cfg.S3Region, "s3-region", "", "Region for connecting to S3 (defaults to the AWS configuration chain, then "+config.DefaultRegion+")")
 	f.BoolVar(&cfg.ForcePathStyle, "force-path-style", false, "Use S3 path-style addressing")
 	addNegatedBool(f, "force-path-style", &cfg.ForcePathStyle, "S3 path-style addressing")
 	f.StringVar(&cfg.ProxyURI, "proxy-uri", "", "Proxy URI for S3 requests")

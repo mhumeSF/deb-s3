@@ -78,7 +78,7 @@ func TestFlagAliasesAndDefaults(t *testing.T) {
 	}
 
 	wantDefaults := map[string]string{
-		"codename": "stable", "component": "main", "s3-region": "us-east-1",
+		"codename": "stable", "component": "main", "s3-region": "",
 		"visibility": "public", "gpg-provider": "gpg",
 	}
 	for name, value := range wantDefaults {
@@ -197,15 +197,18 @@ printf '%s signature\n' "$action" > "$output"
 	}
 }
 
-func TestAWSDefaultRegion(t *testing.T) {
+func TestAWSDefaultRegionDoesNotOverrideConfigChain(t *testing.T) {
+	// Region env vars are resolved by the AWS SDK's configuration chain with
+	// its documented precedence; the CLI must not turn them into an explicit
+	// --s3-region value, which would override profile configuration.
 	t.Setenv("AWS_DEFAULT_REGION", "eu-west-1")
 	root := NewRootCommand()
 	flag := root.PersistentFlags().Lookup("s3-region")
 	if flag == nil {
 		t.Fatal("--s3-region not found")
 	}
-	if flag.DefValue != "eu-west-1" {
-		t.Fatalf("--s3-region default = %q, want eu-west-1", flag.DefValue)
+	if flag.DefValue != "" {
+		t.Fatalf("--s3-region default = %q, want empty", flag.DefValue)
 	}
 }
 
