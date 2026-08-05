@@ -1,8 +1,8 @@
-# deb-s3 (Go)
+# deb-s3
 
 `deb-s3` creates and manages APT repositories in Amazon S3 and compatible
-object stores. This repository contains the standalone Go implementation; it
-does not require Ruby.
+object stores. It ships as a single static binary with no runtime
+dependencies.
 
 ## Build
 
@@ -11,7 +11,7 @@ go build -o deb-s3 ./cmd/deb-s3
 ./deb-s3 --help
 ```
 
-Release builds and Debian packages are described in [GO_RELEASE.md](GO_RELEASE.md).
+Release builds and Debian packages are described in [RELEASE.md](RELEASE.md).
 
 ## Quick start
 
@@ -30,14 +30,12 @@ deb-s3 delete --bucket my-bucket --arch amd64 package-name
 deb-s3 clean --bucket my-bucket
 ```
 
-Run `deb-s3 COMMAND --help` for every option. Existing Ruby users should read
-[GO_MIGRATION.md](GO_MIGRATION.md), especially before the first mutating run.
+Run `deb-s3 COMMAND --help` for every option.
 
 ## Documentation
 
-- [Migration and rollback](GO_MIGRATION.md)
-- [GPG signing and publication order](GO_SIGNING.md)
-- [Repository locking](GO_LOCKING.md)
-- [Release and Debian packaging](GO_RELEASE.md)
+- [GPG signing and publication order](SIGNING.md)
+- [Repository locking](LOCKING.md)
+- [Release and Debian packaging](RELEASE.md)
 
 Licensed under the MIT License. See [LICENSE](LICENSE).

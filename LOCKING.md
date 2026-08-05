@@ -1,4 +1,4 @@
-# Go repository locking
+# Repository locking
 
 The Go port uses one lock object per codename:
 

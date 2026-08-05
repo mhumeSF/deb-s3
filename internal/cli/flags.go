@@ -42,8 +42,8 @@ func (v *negatedBoolValue) Set(value string) error {
 
 func (v *negatedBoolValue) Type() string { return "bool" }
 
-// stringListValue accepts repeated flags, comma-separated values, and Thor's
-// documented space-delimited --versions form.
+// stringListValue accepts repeated flags, comma-separated values, and the
+// space-delimited --versions form documented in the README.
 type stringListValue struct {
 	values *[]string
 }
@@ -67,7 +67,7 @@ func (v *stringListValue) Type() string { return "strings" }
 
 const defaultSigningKey = "default"
 
-// optionalStringArrayValue models Thor's repeatable --sign option, which can
+// optionalStringArrayValue implements the repeatable --sign option, which can
 // be supplied without a key ID to select GPG's default key.
 type optionalStringArrayValue struct {
 	enabled *bool

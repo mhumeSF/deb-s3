@@ -1,4 +1,4 @@
-# Go Release and Packaging
+# Release and Packaging
 
 The Go release build produces four installable artifacts and a checksum file:
 
@@ -28,8 +28,7 @@ Release builds use `-trimpath`, omit VCS metadata, and set nFPM timestamps from
 `SOURCE_DATE_EPOCH`, defaulting to the current Git commit time. Set
 `SOURCE_DATE_EPOCH` explicitly when reproducing an older build.
 
-The Debian package installs only `/usr/bin/deb-s3`. It has no Ruby runtime
-dependency. GnuPG is a recommended rather than required package because only
+The Debian package installs only `/usr/bin/deb-s3`. GnuPG is a recommended rather than required package because only
 repositories using `--sign` need it.
 
 ## Automated verification
@@ -44,9 +43,7 @@ The CI workflow runs:
 
 Publishing a GitHub release runs the same build task, installs and tests the
 amd64 Debian package, preserves both `.deb` files as workflow artifacts, and
-uploads the binaries, packages, and checksum file as release assets. Ruby gem
-publication remains independent in the legacy repository during the preview
-period.
+uploads the binaries, packages, and checksum file as release assets.
 
 The package definition follows the current [nFPM configuration
 reference](https://nfpm.goreleaser.com/docs/configuration/), and the nFPM

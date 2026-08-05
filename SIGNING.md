@@ -1,4 +1,4 @@
-# Go GPG Signing
+# GPG Signing
 
 The Go port supports signing on `upload`, `copy`, `delete`, and `verify`.
 Passing `--sign` uses GPG's default signing key; passing `--sign=KEY_ID`
@@ -41,9 +41,8 @@ clients holding the previous signed generation continue to resolve its index
 contents.
 
 An unsigned publication removes both a stale `Release.gpg` and a stale
-`InRelease` before replacing `Release`. This is a deliberate safety difference
-from the Ruby implementation, which removed only `Release.gpg` and could leave
-an old `InRelease` advertising a different repository generation.
+`InRelease` before replacing `Release`, so an old `InRelease` can never keep
+advertising a different repository generation.
 
 ## Tests
 

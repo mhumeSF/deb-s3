@@ -25,7 +25,9 @@ func TestParseParagraphContinuationAndOrdering(t *testing.T) {
 	}
 }
 
-func TestParseParagraphMatchesRubyDotIndentRule(t *testing.T) {
+// A dot continuation line marks a blank line only at exactly one space of
+// indentation; deeper-indented dots are literal content.
+func TestParseParagraphDotIndentRule(t *testing.T) {
 	paragraph := ParseParagraph("Description: first\n  .\n")
 	value, _ := paragraph.Get("Description")
 	if value != "first\n." {

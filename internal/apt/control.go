@@ -19,9 +19,9 @@ type Paragraph struct {
 	index  map[string]int
 }
 
-// ParseParagraph implements the lenient paragraph parsing used by the Ruby
-// implementation. Unrecognized lines are ignored and duplicate fields replace
-// their earlier value without changing field order.
+// ParseParagraph parses a control paragraph leniently: unrecognized lines are
+// ignored and duplicate fields replace their earlier value without changing
+// field order.
 func ParseParagraph(input string) *Paragraph {
 	paragraph := &Paragraph{index: make(map[string]int)}
 	var currentName string

@@ -203,7 +203,7 @@ func TestValidateOtherManifests(t *testing.T) {
 		t.Fatalf("Release files = %#v", release.Files)
 	}
 	if _, exists := release.Files["main/binary-riscv64/Packages"]; exists {
-		t.Fatal("Ruby compatibility validation unexpectedly generated riscv64")
+		t.Fatal("manifest backfill unexpectedly generated riscv64")
 	}
 	for _, filename := range wantTransferred {
 		info, err := store.Head(ctx, filename)

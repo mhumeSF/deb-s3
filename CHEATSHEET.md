@@ -1,4 +1,4 @@
-# deb-s3 Go Cheat Sheet
+# deb-s3 Cheat Sheet
 
 ## Build and inspect
 
