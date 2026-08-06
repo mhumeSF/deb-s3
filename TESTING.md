@@ -136,11 +136,13 @@ ds3 list --arch amd64        # demo-all appears alongside amd64 packages
 aws s3 ls s3://$BUCKET/deb-s3-demo/dists/noble/main/    # binary-amd64 ... binary-all
 ```
 
-Overriding the package's architecture warns but obeys:
+`--arch` can place an `Architecture: all` package into one specific manifest
+instead of fanning it out, but refuses to publish a concrete architecture
+under a different one (that would advertise a binary that cannot run there):
 
 ```console
-ds3 upload --arch arm64 demo/fixtures/demo_1.1-1_amd64.deb   # warning: specified arm64, package is amd64
-ds3 list --arch arm64
+ds3 upload --arch amd64 demo/fixtures/demo-all_2.0_all.deb   # ok: lands only in binary-amd64
+ds3 upload --arch arm64 demo/fixtures/demo_1.1-1_amd64.deb   # !! package ... is Architecture: amd64 and cannot be uploaded with --arch arm64
 ```
 
 ## 7. Folded control fields and epochs

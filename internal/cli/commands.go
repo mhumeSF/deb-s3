@@ -47,9 +47,7 @@ func newUploadCommand(cfg *config.Config, newStore storeFactory) *cobra.Command 
 			}
 			component := componentFor(cmd, cfg)
 			origin, suite := originSuiteOverrides(cmd, cfg)
-			progress := upload.Progress{Warn: func(message string) {
-				fmt.Fprintln(cmd.ErrOrStderr(), message)
-			}}
+			progress := upload.Progress{}
 			if !cfg.Quiet {
 				progress.Log = func(message string) { fmt.Fprintf(cmd.OutOrStdout(), ">> %s\n", message) }
 				progress.Transfer = func(filename string) { fmt.Fprintf(cmd.OutOrStdout(), "   -- Transferring %s\n", filename) }

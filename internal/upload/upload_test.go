@@ -188,30 +188,72 @@ func TestUploadArchitectureAllInitializesAndPropagates(t *testing.T) {
 	}
 }
 
-func TestUploadArchitectureOverrideWarns(t *testing.T) {
+func TestUploadArchitectureOverrideMismatchFails(t *testing.T) {
 	ctx := context.Background()
 	directory := t.TempDir()
 	filename := writeTestFile(t, directory, "example.deb", "package")
 	store := storage.NewMemoryStore("")
-	var warnings []string
 	runner := Runner{
 		Store: store,
 		Inspect: inspector(map[string]packageSpec{
 			filename: {name: "example", version: "1.0", architecture: "amd64"},
 		}),
-		Progress: Progress{Warn: func(message string) { warnings = append(warnings, message) }},
+	}
+	err := runner.Upload(ctx, []string{filename}, Options{
+		Codename: "stable", Component: "main", Architecture: "arm64", ArchitectureSet: true, Now: fixedClock,
+	})
+	if err == nil || !strings.Contains(err.Error(), "Architecture: amd64") || !strings.Contains(err.Error(), "--arch arm64") {
+		t.Fatalf("Upload() error = %v", err)
+	}
+	objects, err := store.List(ctx, "")
+	if err != nil || len(objects) != 0 {
+		t.Fatalf("mismatch upload published objects: %#v, %v", objects, err)
+	}
+}
+
+func TestUploadArchitectureOverridePlacesArchAllPackage(t *testing.T) {
+	ctx := context.Background()
+	directory := t.TempDir()
+	filename := writeTestFile(t, directory, "portable.deb", "package")
+	store := storage.NewMemoryStore("")
+	runner := Runner{
+		Store: store,
+		Inspect: inspector(map[string]packageSpec{
+			filename: {name: "portable", version: "1.0", architecture: "all"},
+		}),
+	}
+	if err := runner.Upload(ctx, []string{filename}, Options{
+		Codename: "stable", Component: "main", Architecture: "amd64", ArchitectureSet: true, Now: fixedClock,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := store.Get(ctx, "dists/stable/main/binary-amd64/Packages")
+	if err != nil || !strings.Contains(string(data), "Package: portable\n") {
+		t.Fatalf("amd64 Packages = %q, %v", data, err)
+	}
+	if _, err := store.Get(ctx, "dists/stable/main/binary-all/Packages"); !errors.Is(err, storage.ErrNotFound) {
+		t.Fatalf("arch-all placement fanned out to binary-all: %v", err)
+	}
+}
+
+func TestUploadArchitectureOverrideSuppliesMissingArchitecture(t *testing.T) {
+	ctx := context.Background()
+	directory := t.TempDir()
+	filename := writeTestFile(t, directory, "bare.deb", "package")
+	store := storage.NewMemoryStore("")
+	runner := Runner{
+		Store: store,
+		Inspect: inspector(map[string]packageSpec{
+			filename: {name: "bare", version: "1.0", architecture: ""},
+		}),
 	}
 	if err := runner.Upload(ctx, []string{filename}, Options{
 		Codename: "stable", Component: "main", Architecture: "arm64", ArchitectureSet: true, Now: fixedClock,
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if len(warnings) != 1 || !strings.Contains(warnings[0], "architecture arm64") || !strings.Contains(warnings[0], "architecture type of amd64") {
-		t.Fatalf("warnings = %#v", warnings)
-	}
-	data, err := store.Get(ctx, "dists/stable/main/binary-arm64/Packages")
-	if err != nil || !strings.Contains(string(data), "Architecture: amd64\n") {
-		t.Fatalf("override manifest = %q, %v", data, err)
+	if _, err := store.Get(ctx, "dists/stable/main/binary-arm64/Packages"); err != nil {
+		t.Fatalf("arm64 Packages missing: %v", err)
 	}
 }
 

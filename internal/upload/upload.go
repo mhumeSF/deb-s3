@@ -32,7 +32,6 @@ type Options struct {
 
 type Progress struct {
 	Log      func(string)
-	Warn     func(string)
 	Transfer func(string)
 }
 
@@ -107,10 +106,15 @@ func (r Runner) Upload(ctx context.Context, patterns []string, options Options) 
 		}
 		architecture := pack.Architecture
 		if options.ArchitectureSet {
-			architecture = options.Architecture
-			if options.Architecture != pack.Architecture {
-				r.warn(fmt.Sprintf("You specified architecture %s but package %s has architecture type of %s", options.Architecture, pack.Name, pack.Architecture))
+			// --arch may place an "Architecture: all" package into one
+			// specific manifest, or supply an architecture the control file
+			// lacks. Publishing a concrete architecture under a different
+			// one would advertise a binary that cannot run there, so that is
+			// an error rather than a warning.
+			if pack.Architecture != "" && pack.Architecture != "all" && pack.Architecture != options.Architecture {
+				return fmt.Errorf("package %s is Architecture: %s and cannot be uploaded with --arch %s; only Architecture: all packages may be placed in another architecture's manifest", filepath.Base(filename), pack.Architecture, options.Architecture)
 			}
+			architecture = options.Architecture
 		}
 		if architecture == "" {
 			return fmt.Errorf("no architecture given and unable to determine one for %s; specify one with --arch", filename)
@@ -222,11 +226,5 @@ func inspectPackage(ctx context.Context, filename string) (*apt.Package, error) 
 func (r Runner) log(message string) {
 	if r.Progress.Log != nil {
 		r.Progress.Log(message)
-	}
-}
-
-func (r Runner) warn(message string) {
-	if r.Progress.Warn != nil {
-		r.Progress.Warn(message)
 	}
 }
