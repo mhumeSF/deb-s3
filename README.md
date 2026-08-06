@@ -12,6 +12,12 @@ go build -o deb-s3 ./cmd/deb-s3
 ```
 
 Release builds and Debian packages are described in [RELEASE.md](RELEASE.md).
+Container images are published to GHCR on releases (`X.Y.Z` tags) and on
+every push to main (`edge`):
+
+```console
+docker run --rm ghcr.io/mhumesf/deb-s3:edge --help
+```
 
 ## Quick start
 

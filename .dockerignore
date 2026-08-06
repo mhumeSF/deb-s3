@@ -1,0 +1,7 @@
+.git
+.github
+dist
+deb-s3
+demo/fixtures
+*.deb
+*.md
