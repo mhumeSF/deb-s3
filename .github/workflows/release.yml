@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
-      - uses: jdx/mise-action@v3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
       - name: Build release artifacts
         run: VERSION="${GITHUB_REF_NAME#v}" mise run build:deb
       - name: Verify checksums
@@ -29,7 +29,7 @@ jobs:
           test "$(deb-s3 --version)" = "deb-s3 version ${GITHUB_REF_NAME#v}"
           deb-s3 --help >/dev/null
       - name: Preserve Debian packages as workflow artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: deb
           path: dist/*.deb

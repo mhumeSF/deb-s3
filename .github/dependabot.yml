@@ -1,0 +1,22 @@
+---
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # The AWS SDK releases many modules in lockstep; one PR instead of ten.
+      aws-sdk:
+        patterns:
+          - github.com/aws/*
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
