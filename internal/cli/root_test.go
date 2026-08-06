@@ -233,10 +233,10 @@ func TestReadOnlyCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("list all architecture alias", func(t *testing.T) {
-		code, stdout, _ := executeTestRoot(newRootCommand(newStore), "--bucket", "repo", "list", "--arch", "all")
-		if code != 0 || strings.Count(stdout, "\n") != 3 {
-			t.Fatalf("code=%d stdout=%q", code, stdout)
+	t.Run("list all architecture selects the binary-all manifest", func(t *testing.T) {
+		code, stdout, stderr := executeTestRoot(newRootCommand(newStore), "--bucket", "repo", "list", "--arch", "all")
+		if code != 0 || stderr != "" || stdout != "portable  4.0-1  all\n" {
+			t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout, stderr)
 		}
 	})
 
@@ -574,17 +574,22 @@ func readOnlyCommandStore(t *testing.T) (*storage.MemoryStore, []*apt.Package) {
 	t.Helper()
 	ctx := context.Background()
 	store := storage.NewMemoryStore("repository-prefix")
+	// The portable package lives in the binary-all manifest and, as at upload
+	// time, is propagated into the concrete arm64 manifest as well.
+	portable := cliPackage("portable", "", "4.0", "1", "all", "pool/portable.deb")
 	packages := []*apt.Package{
 		cliPackage("alpha", "1", "2.0", "3", "amd64", "pool/alpha.deb"),
 		cliPackage("z", "", "10", "", "amd64", "pool/z.deb"),
-		cliPackage("portable", "", "4.0", "1", "all", "pool/portable.deb"),
+		portable,
 	}
 	manifests := []*apt.Manifest{
 		apt.NewManifest(store, apt.ManifestOptions{Codename: "stable", Component: "main", Architecture: "amd64"}),
 		apt.NewManifest(store, apt.ManifestOptions{Codename: "stable", Component: "main", Architecture: "arm64"}),
+		apt.NewManifest(store, apt.ManifestOptions{Codename: "stable", Component: "main", Architecture: "all"}),
 	}
 	manifests[0].Packages = packages[:2]
-	manifests[1].Packages = packages[2:]
+	manifests[1].Packages = []*apt.Package{portable}
+	manifests[2].Packages = []*apt.Package{portable}
 	release := apt.NewRelease(store, apt.ReleaseOptions{Codename: "stable", Now: func() time.Time {
 		return time.Date(2026, time.August, 4, 18, 30, 0, 0, time.UTC)
 	}})
@@ -597,7 +602,7 @@ func readOnlyCommandStore(t *testing.T) (*storage.MemoryStore, []*apt.Package) {
 	if err := release.Publish(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(release.Architectures, []string{"amd64", "arm64"}) {
+	if !reflect.DeepEqual(release.Architectures, []string{"amd64", "arm64", "all"}) {
 		t.Fatalf("seed architectures = %#v", release.Architectures)
 	}
 	return store, packages

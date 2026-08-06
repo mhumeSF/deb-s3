@@ -36,17 +36,37 @@ func (r Repository) List(ctx context.Context, options ListOptions) ([]*apt.Packa
 		return nil, fmt.Errorf("retrieve Release for list: %w", err)
 	}
 	packages := make([]*apt.Package, 0)
+	// Architecture-all packages are propagated into every architecture's
+	// manifest at upload time, so listing across manifests would repeat them
+	// once per architecture; identical entries are reported once.
+	seen := make(map[listIdentity]struct{})
 	for _, architecture := range release.Architectures {
-		if options.Architecture != "" && options.Architecture != "all" && architecture != options.Architecture {
+		if options.Architecture != "" && architecture != options.Architecture {
 			continue
 		}
 		manifest, err := r.manifest(ctx, options.Codename, options.Component, architecture)
 		if err != nil {
 			return nil, fmt.Errorf("retrieve %s Packages for list: %w", architecture, err)
 		}
-		packages = append(packages, manifest.Packages...)
+		for _, pack := range manifest.Packages {
+			identity := listIdentity{Name: pack.Name, Version: pack.FullVersion(), Architecture: pack.Architecture}
+			if pack.IndexFilename != nil {
+				identity.Filename = *pack.IndexFilename
+			}
+			if _, ok := seen[identity]; ok {
+				continue
+			}
+			seen[identity] = struct{}{}
+			packages = append(packages, pack)
+		}
 	}
 	return packages, nil
+}
+
+// listIdentity distinguishes packages for listing; entries agreeing on all
+// four fields are copies of one package.
+type listIdentity struct {
+	Name, Version, Architecture, Filename string
 }
 
 func (r Repository) Show(ctx context.Context, codename, component, architecture, name, version string) (*apt.Package, error) {

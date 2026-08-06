@@ -19,6 +19,8 @@ func TestRepositoryListPreservesReleaseAndManifestOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// portable appears in both the arm64 and binary-all manifests but is the
+	// same package, so it is listed once.
 	if got := packageIdentities(packages); !reflect.DeepEqual(got, []string{"alpha@1:2.0-3", "beta@10", "portable@4.0-1"}) {
 		t.Fatalf("List() = %#v", got)
 	}
@@ -29,12 +31,14 @@ func TestRepositoryListPreservesReleaseAndManifestOrder(t *testing.T) {
 	if got := packageIdentities(filtered); !reflect.DeepEqual(got, []string{"portable@4.0-1"}) {
 		t.Fatalf("filtered List() = %#v", got)
 	}
+	// "all" is an architecture like any other: it selects the binary-all
+	// manifest alone, not every manifest the package was propagated into.
 	all, err := repository.List(ctx, ListOptions{Codename: "stable", Component: "main", Architecture: "all"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(packageIdentities(all), packageIdentities(packages)) {
-		t.Fatalf("List(architecture=all) = %#v", packageIdentities(all))
+	if got := packageIdentities(all); !reflect.DeepEqual(got, []string{"portable@4.0-1"}) {
+		t.Fatalf("List(architecture=all) = %#v", got)
 	}
 }
 
@@ -87,12 +91,18 @@ func seededRepository(t *testing.T) *storage.MemoryStore {
 	manifests := []*apt.Manifest{
 		apt.NewManifest(store, apt.ManifestOptions{Codename: "stable", Component: "main", Architecture: "amd64"}),
 		apt.NewManifest(store, apt.ManifestOptions{Codename: "stable", Component: "main", Architecture: "arm64"}),
+		apt.NewManifest(store, apt.ManifestOptions{Codename: "stable", Component: "main", Architecture: "all"}),
 	}
 	manifests[0].Packages = []*apt.Package{
 		queryPackage("alpha", "1", "2.0", "3", "amd64", "pool/alpha.deb"),
 		queryPackage("beta", "", "10", "", "amd64", "pool/beta.deb"),
 	}
+	// Architecture-all packages land in the binary-all manifest and are
+	// propagated into every concrete architecture's manifest at upload time.
 	manifests[1].Packages = []*apt.Package{
+		queryPackage("portable", "", "4.0", "1", "all", "pool/portable.deb"),
+	}
+	manifests[2].Packages = []*apt.Package{
 		queryPackage("portable", "", "4.0", "1", "all", "pool/portable.deb"),
 	}
 	release := apt.NewRelease(store, apt.ReleaseOptions{Codename: "stable", Now: func() time.Time {
