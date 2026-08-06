@@ -310,7 +310,14 @@ type sizeLimitedReader struct {
 
 func (r *sizeLimitedReader) Read(value []byte) (int, error) {
 	if r.remaining <= 0 {
-		return 0, &SizeLimitError{Limit: r.limit}
+		// A stream that ends exactly at the limit is within it; only content
+		// beyond the limit is an error, so probe for one more byte.
+		var probe [1]byte
+		n, err := r.reader.Read(probe[:])
+		if n > 0 {
+			return 0, &SizeLimitError{Limit: r.limit}
+		}
+		return 0, err
 	}
 	if int64(len(value)) > r.remaining {
 		value = value[:r.remaining]

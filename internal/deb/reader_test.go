@@ -161,6 +161,23 @@ func TestReadPackageSizeLimits(t *testing.T) {
 	}
 }
 
+func TestReadPackageAcceptsControlArchiveExactlyAtLimit(t *testing.T) {
+	controlArchive := buildControlTar(t, "control", tar.TypeReg, []byte(testControl), nil)
+	// Drop the end-of-archive marker: archive/tar accepts EOF in its place,
+	// which makes the tar reader probe for another header exactly at the
+	// size-limit boundary.
+	truncated := controlArchive[:len(controlArchive)-1024]
+	archive := buildDeb(t, "control.tar", truncated)
+	options := ReaderOptions{MaxControlArchiveSize: int64(len(truncated)), MaxControlFileSize: DefaultMaxControlFileSize}
+	if _, err := ReadPackage(context.Background(), bytes.NewReader(archive), options); err != nil {
+		t.Fatalf("ReadPackage() error = %v, want success for an archive exactly at the limit", err)
+	}
+	options.MaxControlArchiveSize--
+	if _, err := ReadPackage(context.Background(), bytes.NewReader(archive), options); !errors.Is(err, ErrArchiveTooLarge) {
+		t.Fatalf("ReadPackage() error = %v, want ErrArchiveTooLarge one byte under the archive size", err)
+	}
+}
+
 func TestReadPackageHonorsCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
