@@ -213,7 +213,7 @@ func buildControlTar(t *testing.T, name string, typeflag byte, control []byte, e
 func writeTarEntry(t *testing.T, archive *tar.Writer, name string, typeflag byte, value []byte) {
 	t.Helper()
 	header := &tar.Header{Name: name, Mode: 0o644, Typeflag: typeflag}
-	if typeflag == tar.TypeReg || typeflag == tar.TypeRegA {
+	if typeflag == tar.TypeReg {
 		header.Size = int64(len(value))
 	}
 	if typeflag == tar.TypeSymlink {
