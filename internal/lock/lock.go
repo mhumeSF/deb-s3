@@ -36,9 +36,19 @@ type WaitInfo struct {
 	Delay   time.Duration
 }
 
+// Unlimited disables the attempt bound on Acquire, leaving Timeout and context
+// cancellation as the only limits on how long it waits.
+const Unlimited = -1
+
 type Options struct {
-	Owner          Owner
-	MaxAttempts    int
+	Owner Owner
+	// MaxAttempts bounds the number of acquisition attempts. Unlimited, or any
+	// value below one, removes the bound. It defaults to 60 attempts only when
+	// Timeout is also unset, so that one of the two always applies.
+	MaxAttempts int
+	// Timeout bounds the total time spent waiting for a contended lock. Zero
+	// means no time limit.
+	Timeout        time.Duration
 	InitialBackoff time.Duration
 	MaxBackoff     time.Duration
 	CacheControl   string
@@ -87,8 +97,18 @@ func (m Manager) Acquire(ctx context.Context, codename string) (*Handle, error) 
 		return nil, fmt.Errorf("encode lock owner: %w", err)
 	}
 
-	for attempt := 1; attempt <= options.MaxAttempts; attempt++ {
-		if err := ctx.Err(); err != nil {
+	// A timeout is expressed as a context deadline so that it interrupts a wait
+	// and an in-flight store request alike. The cause distinguishes it from the
+	// caller cancelling, which must keep reporting context.Canceled.
+	if options.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeoutCause(ctx, options.Timeout,
+			fmt.Errorf("%w after waiting %s", ErrLocked, options.Timeout))
+		defer cancel()
+	}
+
+	for attempt := 1; options.MaxAttempts < 1 || attempt <= options.MaxAttempts; attempt++ {
+		if err := waitError(ctx); err != nil {
 			return nil, err
 		}
 		err := m.Store.Put(ctx, lockPath, bytes.NewReader(body), storage.PutOptions{
@@ -102,11 +122,19 @@ func (m Manager) Acquire(ctx context.Context, codename string) (*Handle, error) 
 			return &Handle{store: m.Store, path: lockPath, owner: owner, etag: info.ETag}, nil
 		}
 		if !errors.Is(err, storage.ErrConflict) {
+			// An expired Timeout aborts the request in flight; report the
+			// timeout rather than the store error it caused.
+			if waitErr := waitError(ctx); waitErr != nil {
+				return nil, waitErr
+			}
 			return nil, fmt.Errorf("create repository lock: %w", err)
 		}
 
 		current, currentErr := m.Current(ctx, codename)
 		if currentErr != nil && !errors.Is(currentErr, storage.ErrNotFound) {
+			if waitErr := waitError(ctx); waitErr != nil {
+				return nil, waitErr
+			}
 			return nil, fmt.Errorf("read current repository lock: %w", currentErr)
 		}
 		delay := retryDelay(options.InitialBackoff, options.MaxBackoff, attempt)
@@ -129,11 +157,24 @@ func (m Manager) Acquire(ctx context.Context, codename string) (*Handle, error) 
 			if !timer.Stop() {
 				<-timer.C
 			}
-			return nil, ctx.Err()
+			return nil, waitError(ctx)
 		case <-timer.C:
 		}
 	}
 	return nil, fmt.Errorf("%w after %d attempts", ErrLocked, options.MaxAttempts)
+}
+
+// waitError reports an expired Timeout as its ErrLocked cause and any other
+// context error as itself.
+func waitError(ctx context.Context) error {
+	err := ctx.Err()
+	if err == nil {
+		return nil
+	}
+	if cause := context.Cause(ctx); errors.Is(cause, ErrLocked) {
+		return cause
+	}
+	return err
 }
 
 func (m Manager) Current(ctx context.Context, codename string) (*Owner, error) {
@@ -203,7 +244,7 @@ func checkedLockPath(codename string) (string, error) {
 
 func (m Manager) optionsWithDefaults() Options {
 	options := m.Options
-	if options.MaxAttempts <= 0 {
+	if options.MaxAttempts == 0 && options.Timeout <= 0 {
 		options.MaxAttempts = 60
 	}
 	if options.InitialBackoff <= 0 {

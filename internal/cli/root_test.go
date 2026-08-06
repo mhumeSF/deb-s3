@@ -15,6 +15,7 @@ import (
 
 	"github.com/mhumesf/deb-s3/internal/apt"
 	"github.com/mhumesf/deb-s3/internal/config"
+	repolock "github.com/mhumesf/deb-s3/internal/lock"
 	"github.com/mhumesf/deb-s3/internal/storage"
 	"github.com/spf13/cobra"
 )
@@ -95,12 +96,12 @@ func TestFlagAliasesAndDefaults(t *testing.T) {
 
 func TestCommandFlagSurface(t *testing.T) {
 	tests := map[string][]string{
-		"upload": {"arch", "preserve-versions", "no-preserve-versions", "lock", "no-lock", "fail-if-exists", "no-fail-if-exists", "skip-package-upload", "no-skip-package-upload"},
+		"upload": {"arch", "preserve-versions", "no-preserve-versions", "lock", "no-lock", "lock-timeout", "fail-if-exists", "no-fail-if-exists", "skip-package-upload", "no-skip-package-upload"},
 		"list":   {"long", "arch"},
-		"copy":   {"arch", "lock", "no-lock", "versions", "preserve-versions", "no-preserve-versions", "fail-if-exists", "no-fail-if-exists"},
-		"delete": {"arch", "lock", "no-lock", "versions"},
+		"copy":   {"arch", "lock", "no-lock", "lock-timeout", "versions", "preserve-versions", "no-preserve-versions", "fail-if-exists", "no-fail-if-exists"},
+		"delete": {"arch", "lock", "no-lock", "lock-timeout", "versions"},
 		"verify": {"fix-manifests", "no-fix-manifests"},
-		"clean":  {"lock", "no-lock"},
+		"clean":  {"lock", "no-lock", "lock-timeout"},
 	}
 
 	root := NewRootCommand()
@@ -547,6 +548,25 @@ func TestMutatingCommandsReleaseRepositoryLocks(t *testing.T) {
 		}
 		if _, err := base.Get(context.Background(), "dists/stable/lockfile"); !errors.Is(err, storage.ErrNotFound) {
 			t.Fatalf("lock remains after upload error: %v", err)
+		}
+	})
+
+	t.Run("lock timeout gives up on a held lock", func(t *testing.T) {
+		base := mutationCommandStore(t)
+		holder, err := (repolock.Manager{Store: base}).Acquire(context.Background(), "stable")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = holder.Release(context.Background()) })
+		newStore := func(context.Context, config.Config) (storage.Store, error) { return base, nil }
+		code, _, stderr := executeTestRoot(newRootCommand(newStore),
+			"--bucket", "repo", "delete", "--lock", "--lock-timeout", "50ms", "--arch", "amd64", "alpha",
+		)
+		if code != 1 || !strings.Contains(stderr, "repository is locked after waiting 50ms") {
+			t.Fatalf("code=%d stderr=%q", code, stderr)
+		}
+		if _, err := base.Get(context.Background(), "dists/stable/lockfile"); err != nil {
+			t.Fatalf("the holder's lock was disturbed: %v", err)
 		}
 	})
 

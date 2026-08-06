@@ -3,9 +3,28 @@ package cli
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/pflag"
 )
+
+// DefaultLockTimeout bounds how long a command waits for a contended
+// repository lock before giving up.
+const DefaultLockTimeout = 10 * time.Minute
+
+// lockFlags holds the repository locking options shared by every command that
+// mutates a repository.
+type lockFlags struct {
+	enabled bool
+	timeout time.Duration
+}
+
+func addLockFlags(flags *pflag.FlagSet, target *lockFlags, usage string) {
+	flags.BoolVarP(&target.enabled, "lock", "l", false, usage)
+	addNegatedBool(flags, "lock", &target.enabled, "repository locking")
+	flags.DurationVar(&target.timeout, "lock-timeout", DefaultLockTimeout,
+		"Maximum time to wait for a lock held by another run (0 waits indefinitely)")
+}
 
 func addNegatedBool(flags *pflag.FlagSet, name string, target *bool, usage string) {
 	negated := &negatedBoolValue{target: target}

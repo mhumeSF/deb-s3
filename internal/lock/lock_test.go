@@ -92,6 +92,55 @@ func TestCancellationInterruptsWaiting(t *testing.T) {
 	}
 }
 
+func TestTimeoutBoundsWaitingWithoutAnAttemptLimit(t *testing.T) {
+	store := storage.NewMemoryStore("")
+	holder, err := (Manager{Store: store, Options: Options{Owner: testOwner("holder")}}).Acquire(context.Background(), "stable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = holder.Release(context.Background()) })
+
+	var reports atomic.Int32
+	started := time.Now()
+	_, err = (Manager{Store: store, Options: Options{
+		Owner: testOwner("waiter"), MaxAttempts: Unlimited, Timeout: 150 * time.Millisecond,
+		InitialBackoff: time.Millisecond, MaxBackoff: time.Millisecond,
+		Reporter: func(WaitInfo) { reports.Add(1) },
+	}}).Acquire(context.Background(), "stable")
+	if !errors.Is(err, ErrLocked) {
+		t.Fatalf("Acquire() error = %v, want ErrLocked", err)
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("Acquire() leaked the deadline error: %v", err)
+	}
+	if waited := time.Since(started); waited < 150*time.Millisecond {
+		t.Fatalf("Acquire() gave up after %s, want at least the 150ms timeout", waited)
+	}
+	// A 1ms backoff over 150ms must outlast the 60-attempt default, proving the
+	// timeout rather than an attempt count ended the wait.
+	if reports.Load() <= 60 {
+		t.Fatalf("reports = %d, want more than the default attempt bound", reports.Load())
+	}
+}
+
+func TestCallerCancellationOutranksTheTimeout(t *testing.T) {
+	store := storage.NewMemoryStore("")
+	holder, err := (Manager{Store: store, Options: Options{Owner: testOwner("holder")}}).Acquire(context.Background(), "stable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = holder.Release(context.Background()) })
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err = (Manager{Store: store, Options: Options{
+		Owner: testOwner("waiter"), Timeout: time.Hour,
+	}}).Acquire(ctx, "stable")
+	if !errors.Is(err, context.Canceled) || errors.Is(err, ErrLocked) {
+		t.Fatalf("Acquire() error = %v, want context.Canceled", err)
+	}
+}
+
 func TestAcquireRetriesAreBoundedAndReported(t *testing.T) {
 	store := storage.NewMemoryStore("")
 	holder, err := (Manager{Store: store, Options: Options{Owner: testOwner("holder")}}).Acquire(context.Background(), "stable")

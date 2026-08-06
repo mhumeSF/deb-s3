@@ -22,7 +22,7 @@ import (
 func newUploadCommand(cfg *config.Config, newStore storeFactory) *cobra.Command {
 	var architecture string
 	var preserveVersions bool
-	var lock bool
+	var lock lockFlags
 	var failIfExists bool
 	var skipPackageUpload bool
 
@@ -68,8 +68,7 @@ func newUploadCommand(cfg *config.Config, newStore storeFactory) *cobra.Command 
 	f.StringVarP(&architecture, "arch", "a", "", "Architecture of the package in the APT repository")
 	f.BoolVarP(&preserveVersions, "preserve-versions", "p", false, "Preserve other package versions")
 	addNegatedBool(f, "preserve-versions", &preserveVersions, "preserving other package versions")
-	f.BoolVarP(&lock, "lock", "l", false, "Lock the repository during the update")
-	addNegatedBool(f, "lock", &lock, "repository locking")
+	addLockFlags(f, &lock, "Lock the repository during the update")
 	f.BoolVar(&failIfExists, "fail-if-exists", false, "Fail when the package already exists with different contents")
 	addNegatedBool(f, "fail-if-exists", &failIfExists, "failure for existing conflicting packages")
 	f.BoolVar(&skipPackageUpload, "skip-package-upload", false, "Update metadata without uploading package files")
@@ -207,7 +206,7 @@ func componentFor(cmd *cobra.Command, cfg *config.Config) string {
 
 func newCopyCommand(cfg *config.Config, newStore storeFactory) *cobra.Command {
 	var architecture string
-	var lock bool
+	var lock lockFlags
 	var versions []string
 	var preserveVersions bool
 	failIfExists := true
@@ -252,8 +251,7 @@ func newCopyCommand(cfg *config.Config, newStore storeFactory) *cobra.Command {
 	}
 	f := cmd.Flags()
 	f.StringVarP(&architecture, "arch", "a", "", "Architecture of the package to copy")
-	f.BoolVarP(&lock, "lock", "l", false, "Lock the repository during the update")
-	addNegatedBool(f, "lock", &lock, "repository locking")
+	addLockFlags(f, &lock, "Lock the repository during the update")
 	f.Var(&stringListValue{values: &versions}, "versions", "Versions to copy (space-delimited, comma-delimited, or repeated)")
 	f.BoolVarP(&preserveVersions, "preserve-versions", "p", false, "Preserve other package versions")
 	addNegatedBool(f, "preserve-versions", &preserveVersions, "preserving other package versions")
@@ -264,7 +262,7 @@ func newCopyCommand(cfg *config.Config, newStore storeFactory) *cobra.Command {
 
 func newDeleteCommand(cfg *config.Config, newStore storeFactory) *cobra.Command {
 	var architecture string
-	var lock bool
+	var lock lockFlags
 	var versions []string
 	cmd := &cobra.Command{
 		Use:   "delete PACKAGE",
@@ -309,8 +307,7 @@ func newDeleteCommand(cfg *config.Config, newStore storeFactory) *cobra.Command 
 	}
 	f := cmd.Flags()
 	f.StringVarP(&architecture, "arch", "a", "", "Architecture to remove the package from")
-	f.BoolVarP(&lock, "lock", "l", false, "Lock the repository during the update")
-	addNegatedBool(f, "lock", &lock, "repository locking")
+	addLockFlags(f, &lock, "Lock the repository during the update")
 	f.Var(&stringListValue{values: &versions}, "versions", "Versions to delete (space-delimited, comma-delimited, or repeated)")
 	return cmd
 }
@@ -365,16 +362,20 @@ func configuredSigner(cfg *config.Config) (apt.ReleaseSigner, error) {
 	}, nil
 }
 
-func withRepositoryLock(cmd *cobra.Command, cfg *config.Config, store storage.Store, enabled bool, codename string, operation func(context.Context) error) error {
-	if !enabled {
+func withRepositoryLock(cmd *cobra.Command, cfg *config.Config, store storage.Store, lock lockFlags, codename string, operation func(context.Context) error) error {
+	if !lock.enabled {
 		return operation(cmd.Context())
 	}
 	if !cfg.Quiet {
 		fmt.Fprintln(cmd.OutOrStdout(), ">> Checking for existing lock file")
 		fmt.Fprintln(cmd.OutOrStdout(), ">> Locking repository for updates")
 	}
+	// --lock-timeout is the only bound on waiting, so the attempt count must not
+	// cut a longer wait short.
 	manager := repolock.Manager{Store: store, Options: repolock.Options{
 		CacheControl: cfg.CacheControl,
+		Timeout:      lock.timeout,
+		MaxAttempts:  repolock.Unlimited,
 		Reporter: func(info repolock.WaitInfo) {
 			user, host := info.Current.User, info.Current.Host
 			if user == "" {
@@ -450,7 +451,7 @@ func newVerifyCommand(cfg *config.Config, newStore storeFactory) *cobra.Command 
 }
 
 func newCleanCommand(cfg *config.Config, newStore storeFactory) *cobra.Command {
-	var lock bool
+	var lock lockFlags
 	cmd := &cobra.Command{
 		Use:   "clean",
 		Short: "Delete unreferenced package files from the pool",
@@ -472,8 +473,7 @@ func newCleanCommand(cfg *config.Config, newStore storeFactory) *cobra.Command {
 			})
 		},
 	}
-	cmd.Flags().BoolVarP(&lock, "lock", "l", false, "Lock the repository during cleanup")
-	addNegatedBool(cmd.Flags(), "lock", &lock, "repository locking")
+	addLockFlags(cmd.Flags(), &lock, "Lock the repository during cleanup")
 	return cmd
 }
 
