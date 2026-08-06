@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/deb-s3/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3/internal/storage"
 )
 
 var ErrPackageConflict = errors.New("package already exists with different contents")

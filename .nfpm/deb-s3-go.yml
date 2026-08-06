@@ -8,7 +8,7 @@ section: admin
 priority: optional
 maintainer: Stefan Heitmüller <stefan.heitmueller@gmx.com>
 description: Create and manage APT repositories on S3
-homepage: https://github.com/deb-s3/deb-s3
+homepage: https://github.com/mhumesf/deb-s3
 license: MIT
 recommends:
   - gnupg

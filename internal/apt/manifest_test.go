@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deb-s3/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3/internal/storage"
 )
 
 func TestParseAndRenderPackages(t *testing.T) {

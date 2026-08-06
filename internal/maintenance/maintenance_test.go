@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deb-s3/deb-s3/internal/apt"
-	"github.com/deb-s3/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3/internal/apt"
+	"github.com/mhumesf/deb-s3/internal/storage"
 )
 
 func TestVerifyReadOnlyReportsMissingPackages(t *testing.T) {
@@ -236,7 +236,7 @@ func cleanupRepository(t *testing.T) *storage.MemoryStore {
 		t.Fatal(err)
 	}
 	objects := map[string]string{
-		"pool/stable/copied.deb": "referenced only from the testing codename",
+		"pool/stable/copied.deb":                                 "referenced only from the testing codename",
 		"pool/stable/referenced-amd64.deb":                       "amd64",
 		"pool/stable/referenced-arm64.deb":                       "arm64",
 		"pool/stable/shared.deb":                                 "shared",

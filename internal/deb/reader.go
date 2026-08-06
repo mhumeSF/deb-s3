@@ -17,8 +17,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deb-s3/deb-s3/internal/apt"
 	"github.com/klauspost/compress/zstd"
+	"github.com/mhumesf/deb-s3/internal/apt"
 	"github.com/ulikunitz/xz"
 )
 

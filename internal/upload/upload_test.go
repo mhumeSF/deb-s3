@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deb-s3/deb-s3/internal/apt"
-	"github.com/deb-s3/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3/internal/apt"
+	"github.com/mhumesf/deb-s3/internal/storage"
 )
 
 func TestExpandFiles(t *testing.T) {

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/deb-s3/deb-s3/internal/cli"
+	"github.com/mhumesf/deb-s3/internal/cli"
 )
 
 func main() {

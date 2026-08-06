@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/deb-s3/deb-s3/internal/apt"
-	"github.com/deb-s3/deb-s3/internal/deb"
-	"github.com/deb-s3/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3/internal/apt"
+	"github.com/mhumesf/deb-s3/internal/deb"
+	"github.com/mhumesf/deb-s3/internal/storage"
 )
 
 var defaultArchitectures = []string{"amd64", "i386", "armhf", "arm64"}
