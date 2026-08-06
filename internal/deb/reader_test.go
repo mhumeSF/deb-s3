@@ -78,6 +78,34 @@ func TestReadPackageFileAppliesFileMetadata(t *testing.T) {
 	}
 }
 
+func TestReadPackageIgnoresIndexFieldsInControlFile(t *testing.T) {
+	control := testControl +
+		"Filename: dists/production/InRelease\n" +
+		"Size: 1\n" +
+		"MD5sum: 00000000000000000000000000000000\n" +
+		"SHA1: 0000000000000000000000000000000000000000\n" +
+		"SHA256: 0000000000000000000000000000000000000000000000000000000000000000\n"
+	archive := buildDeb(t, "control.tar", buildControlTar(t, "control", tar.TypeReg, []byte(control), nil))
+	filename := filepath.Join(t.TempDir(), "example_1.0_amd64.deb")
+	if err := os.WriteFile(filename, archive, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	info, err := ReadPackageFile(context.Background(), filename, ReaderOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	poolPath, err := info.Package.RepositoryFilename("stable")
+	if err != nil || poolPath != "pool/stable/e/ex/example_1.0_amd64.deb" {
+		t.Fatalf("RepositoryFilename() = %q, %v, want the derived pool path", poolPath, err)
+	}
+	if *info.Package.Size != fmt.Sprint(len(archive)) {
+		t.Fatalf("Size = %q, want the measured size %d", *info.Package.Size, len(archive))
+	}
+	if *info.Package.MD5 != info.MD5 || *info.Package.SHA1 != info.SHA1 || *info.Package.SHA256 != info.SHA256 {
+		t.Fatalf("digests were taken from the control file: %#v", info.Package)
+	}
+}
+
 func TestReadPackageAllowsIgnorableAndTrailingMembers(t *testing.T) {
 	controlArchive := buildControlTar(t, "control", tar.TypeReg, []byte(testControl), nil)
 	archive := buildAR(t,

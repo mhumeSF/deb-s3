@@ -1,11 +1,15 @@
 package apt
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/mhumesf/deb-s3/internal/storage"
 )
 
 func TestPackageGoldenRoundTrip(t *testing.T) {
@@ -202,6 +206,61 @@ func TestRelationshipFieldsRoundTripInTemplateOrder(t *testing.T) {
 	}
 	if output != input {
 		firstDifference(t, input, output)
+	}
+}
+
+func TestRepositoryFilenameRejectsPathsOutsideThePool(t *testing.T) {
+	tests := []struct {
+		name         string
+		packageName  string
+		sourceFile   string
+		wantFilename string
+	}{
+		{name: "ordinary name", packageName: "example", sourceFile: "/tmp/example_1.0_amd64.deb", wantFilename: "pool/stable/e/ex/example_1.0_amd64.deb"},
+		{name: "single letter name", packageName: "a", sourceFile: "/tmp/a_1.0_amd64.deb", wantFilename: "pool/stable/a/a/a_1.0_amd64.deb"},
+		{name: "name with punctuation", packageName: "libstdc++6", sourceFile: "/tmp/libstdc++6_1.0_amd64.deb", wantFilename: "pool/stable/l/li/libstdc++6_1.0_amd64.deb"},
+		{name: "traversal name", packageName: "..", sourceFile: "/tmp/example.deb"},
+		{name: "separator in name", packageName: "a/b", sourceFile: "/tmp/example.deb"},
+		{name: "dot prefixed name", packageName: ".hidden", sourceFile: "/tmp/example.deb"},
+		{name: "traversal basename", packageName: "example", sourceFile: "/tmp/.."},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pack := NewPackage()
+			pack.Name = tt.packageName
+			pack.Filename = tt.sourceFile
+			filename, err := pack.RepositoryFilename("stable")
+			if tt.wantFilename == "" {
+				if err == nil {
+					t.Fatalf("RepositoryFilename() = %q, want an error", filename)
+				}
+				return
+			}
+			if err != nil || filename != tt.wantFilename {
+				t.Fatalf("RepositoryFilename() = %q, %v, want %q", filename, err, tt.wantFilename)
+			}
+		})
+	}
+}
+
+func TestPublishPackageRefusesBodyOutsideThePool(t *testing.T) {
+	store := storage.NewMemoryStore("")
+	packageFile := filepath.Join(t.TempDir(), "example_1.0-1_amd64.deb")
+	if err := os.WriteFile(packageFile, []byte("package contents"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	pack := testPackage("example", "1.0", "1", "dists/production/InRelease")
+	pack.Filename = packageFile
+
+	manifest := NewManifest(store, ManifestOptions{Codename: "stable", Component: "main", Architecture: "amd64"})
+	if err := manifest.Add(pack, false, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := manifest.PublishPackages(context.Background(), nil); err == nil {
+		t.Fatal("PublishPackages() succeeded, want a refusal for a body outside pool/")
+	}
+	if _, err := store.Get(context.Background(), "dists/production/InRelease"); !errors.Is(err, storage.ErrNotFound) {
+		t.Fatalf("package body was written outside pool/: %v", err)
 	}
 }
 

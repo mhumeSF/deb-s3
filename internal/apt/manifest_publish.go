@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/mhumesf/deb-s3/internal/storage"
@@ -164,6 +165,12 @@ func (m *Manifest) publishPackage(ctx context.Context, pack *Package, onTransfer
 	repositoryFilename, err := pack.RepositoryFilename(m.Codename)
 	if err != nil {
 		return err
+	}
+	// Package bodies belong under pool/. Anything else means the path came from
+	// package-supplied metadata rather than the pool layout, and writing there
+	// would overwrite repository metadata such as another suite's Release.
+	if !strings.HasPrefix(repositoryFilename, "pool/") {
+		return fmt.Errorf("refusing to write package %q body to %q outside pool/", pack.Name, repositoryFilename)
 	}
 	file, err := os.Open(pack.Filename)
 	if err != nil {

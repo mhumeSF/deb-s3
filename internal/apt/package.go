@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -158,7 +159,16 @@ func (p *Package) RepositoryFilename(codename string) (string, error) {
 	if len(prefix) > 2 {
 		prefix = prefix[:2]
 	}
-	return fmt.Sprintf("pool/%s/%s/%s/%s", codename, p.Name[:1], prefix, filepath.Base(p.Filename)), nil
+	// filepath.Base reads the local source path; path.Clean then checks the
+	// resulting object key, which uses slash semantics on every platform. The
+	// package name and source basename both come from the package itself, so a
+	// hostile value must not be able to reshape the key by introducing a
+	// separator or a traversal segment.
+	derived := fmt.Sprintf("pool/%s/%s/%s/%s", codename, p.Name[:1], prefix, filepath.Base(p.Filename))
+	if derived != path.Clean(derived) {
+		return "", fmt.Errorf("package %q does not map to a pool path", p.Name)
+	}
+	return derived, nil
 }
 
 func takePointer(paragraph *Paragraph, name string) *string {

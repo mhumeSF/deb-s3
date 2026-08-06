@@ -114,6 +114,15 @@ func ReadPackage(ctx context.Context, reader io.Reader, options ReaderOptions) (
 	if err != nil {
 		return nil, fmt.Errorf("parse package control metadata: %w", err)
 	}
+	// Filename, Size and the digests describe an entry in a Packages index, not
+	// a control file. Carrying them over from a package under inspection would
+	// let it pick the repository key its body is written to and claim digests
+	// that do not match its bytes.
+	pack.IndexFilename = nil
+	pack.Size = nil
+	pack.MD5 = nil
+	pack.SHA1 = nil
+	pack.SHA256 = nil
 	return &PackageInfo{
 		Package: pack,
 		Size:    counter.size,
