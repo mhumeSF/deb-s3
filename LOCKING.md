@@ -1,56 +1,41 @@
 # Repository locking
 
-The Go port uses one lock object per codename:
+Pass `--lock` to stop two runs from updating the same repository at once.
+Each codename gets one lock object:
 
 ```text
 dists/<codename>/lockfile
 ```
 
-The lock covers the Release file and every component and architecture below
-that codename. Copy locks the destination codename because that is the
-repository it mutates.
+The lock covers everything under that codename. `copy` locks the destination
+codename, since that is the repository it changes.
 
-## Protocol
+## How it works
 
-Acquisition writes a small JSON owner record with a unique random token, user,
-host, process ID, and acquisition time. The write uses `PutObject` with
-`If-None-Match: *`. Only one contender can create an absent key; existing keys
-produce a precondition conflict. AWS documents that concurrent conditional
-writes allow the first write to finish and reject later writes with a
-precondition failure:
+To take the lock, deb-s3 writes a small JSON record (who, where, when, plus a
+random token) using a conditional write that only succeeds if the lock object
+does not already exist. If someone else holds the lock, deb-s3 reports the
+current owner and retries with backoff until it gets the lock or is
+cancelled.
 
-- <https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html>
+To release the lock, deb-s3 deletes it with a conditional delete tied to the
+exact object it created, so it can never delete a lock that has since been
+replaced by another run. The lock is released even when the operation fails
+or is cancelled.
 
-Contenders retry with bounded exponential backoff, report the current owner,
-and stop promptly when their context is cancelled.
+## Requirements
 
-Release reads the owner token and then deletes the object with `If-Match` set
-to the ETag observed during acquisition. This makes the ownership check and
-delete atomic: a replaced lock has a different ETag and cannot be deleted by
-the old handle. AWS documents ETag-conditional `DeleteObject` and its required
-permissions here:
+The object store must support S3 conditional writes and conditional deletes:
 
-- <https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-deletes.html>
+- [Conditional writes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html)
+- [Conditional deletes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-deletes.html)
 
-Operation errors and context cancellation do not skip release; cleanup uses a
-short context detached from the cancelled operation context.
+AWS S3 supports both, and the credentials need `s3:PutObject`,
+`s3:GetObject`, and `s3:DeleteObject` on the lock key. Other S3-compatible
+stores must support the same conditional requests — there is deliberately no
+fallback, because an unconditional delete could remove someone else's lock.
+On a store without support, `--lock` fails with a clear error; everything
+else still works without `--lock`.
 
-## Endpoint requirements
-
-Locking requires an object store that supports both:
-
-- conditional create through `PutObject` with `If-None-Match: *`;
-- conditional delete through `DeleteObject` with `If-Match: <etag>`.
-
-AWS S3 general-purpose buckets support both operations. The credentials need
-`s3:PutObject`, `s3:GetObject`, and `s3:DeleteObject` for the lock key.
-
-S3-compatible endpoints must implement the same conditional request behavior.
-There is deliberately no read-then-delete compatibility fallback because it
-has a race that can delete a replacement owner's lock. An endpoint without
-conditional delete fails `--lock` explicitly; commands remain usable without
-`--lock`.
-
-Locks do not expire or get stolen automatically. A stale lock should be
-inspected and removed administratively after confirming that its recorded
-owner is no longer active.
+Locks never expire or get stolen automatically. If a run dies and leaves a
+lock behind, check the recorded owner and delete the lock object by hand.

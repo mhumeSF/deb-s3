@@ -1,54 +1,40 @@
-# GPG Signing
+# GPG signing
 
-The Go port supports signing on `upload`, `copy`, `delete`, and `verify`.
-Passing `--sign` uses GPG's default signing key; passing `--sign=KEY_ID`
-selects a key explicitly, and the option may be repeated. `--gpg-provider`
-selects the executable and defaults to `gpg`.
+Pass `--sign` on `upload`, `copy`, `delete`, or `verify` to sign the
+repository's Release metadata. `--sign` alone uses your default GPG key;
+`--sign=KEY_ID` picks a key and can be repeated to sign with several keys.
+`--gpg-provider` chooses the GPG executable (default `gpg`).
 
-## Process boundary
+## How signing runs
 
-Signing runs the configured executable directly with an argument vector. It
-does not invoke a command shell. `--gpg-options` supports whitespace, quoted
-values, and backslash escapes, but deliberately performs no environment,
-command, glob, or tilde expansion. SHA-256 is appended after extra options so
-the required digest algorithm cannot be weakened by an earlier option.
+deb-s3 runs GPG directly, never through a shell. `--gpg-options` accepts
+quoted values and escapes, but nothing is shell-expanded, and SHA-256 is
+always enforced as the digest algorithm regardless of extra options.
 
-The signer creates a private temporary directory, writes the exact rendered
-`Release` bytes there, and asks GPG for both armored artifacts:
+For each publish, deb-s3 writes the Release file to a private temporary
+directory and produces both signature formats:
 
-- `InRelease`, using a clear signature.
-- `Release.gpg`, using a detached signature.
+- `InRelease` — clear-signed copy of Release
+- `Release.gpg` — detached signature
 
-Both outputs must exist and be non-empty. The signer then asks the same GPG
-provider to verify the clear signature and the detached signature before any
-new Release generation is uploaded. Provider output is included in failures
-to make missing keys, agent failures, and invalid options diagnosable.
+Both signatures are verified locally before anything is uploaded. If signing
+or verification fails, nothing new is published, and the GPG output is
+included in the error so problems like missing keys are easy to spot.
 
 ## Publication order
 
-Repository indices, including immutable by-hash objects, are published before
-the Release generation. A signed generation is then uploaded in this order:
+Package indices are uploaded first, then the signed set in this order:
+`Release`, then `Release.gpg`, then `InRelease`. Clients treat `InRelease`
+as the final word, so it goes last. With `--by-hash`, clients that already
+fetched the previous signed generation keep working even if an upload is
+interrupted partway through.
 
-1. `Release`
-2. `Release.gpg`
-3. `InRelease`
-
-Publishing `InRelease` last makes it the final commit object seen by clients
-that prefer clear-signed metadata. If local signing or verification fails, no
-object from the new Release/signature set is uploaded. An object-store failure
-can still interrupt the three uploads; retaining immutable by-hash indices lets
-clients holding the previous signed generation continue to resolve its index
-contents.
-
-An unsigned publication removes both a stale `Release.gpg` and a stale
-`InRelease` before replacing `Release`, so an old `InRelease` can never keep
-advertising a different repository generation.
+Publishing without `--sign` deletes any stale `Release.gpg` and `InRelease`,
+so an old signature can never keep describing a repository that has moved on.
 
 ## Tests
 
-Deterministic tests use a fake executable to inspect literal arguments,
-simulate errors and missing outputs, and assert upload ordering. When `gpg` is
-available, an integration test creates a key in an isolated temporary
-`GNUPGHOME`, signs both artifacts, and verifies them. The integration test is
-skipped on development hosts without GPG; CI intended to validate release
-signing should install GPG so it runs.
+Unit tests use a fake GPG executable to check arguments, error handling, and
+upload order. When real `gpg` is installed, an integration test signs and
+verifies with a throwaway key in an isolated `GNUPGHOME`; it is skipped when
+GPG is missing, so CI that validates release signing should install GPG.
