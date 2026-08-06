@@ -4,6 +4,11 @@
 object stores. It ships as a single static binary with no runtime
 dependencies.
 
+It is a Go port of the Ruby [deb-s3](https://github.com/deb-s3/deb-s3),
+originally written by [Ken Robertson](https://github.com/krobertson/deb-s3).
+The command-line surface and repository layout are compatible, so it can take
+over a repository created and maintained by the Ruby tool.
+
 ## Build
 
 ```console
@@ -37,6 +42,11 @@ deb-s3 clean --bucket my-bucket
 ```
 
 Run `deb-s3 COMMAND --help` for every option.
+
+The default `--visibility public` matches the Ruby tool, but S3 buckets
+created since April 2023 disable ACLs by default and reject it with
+`AccessControlListNotSupported`. For such buckets pass `--visibility nil`,
+which sends no ACL at all.
 
 ## Documentation
 
