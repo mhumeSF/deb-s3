@@ -34,6 +34,7 @@ Run `deb-s3 COMMAND --help` for every option.
 
 ## Documentation
 
+- [Manual test playbook](TESTING.md)
 - [GPG signing and publication order](SIGNING.md)
 - [Repository locking](LOCKING.md)
 - [Release and Debian packaging](RELEASE.md)
