@@ -16,7 +16,8 @@ go build -o deb-s3 ./cmd/deb-s3
 ./deb-s3 --help
 ```
 
-Release builds and Debian packages are described in [RELEASE.md](RELEASE.md).
+Release builds and Debian packages are described in
+[docs/RELEASE.md](docs/RELEASE.md).
 Container images are published to GHCR on releases (`X.Y.Z` tags) and on
 every push to main (`edge`):
 
@@ -50,9 +51,10 @@ which sends no ACL at all.
 
 ## Documentation
 
-- [Manual test playbook](TESTING.md)
-- [GPG signing and publication order](SIGNING.md)
-- [Repository locking](LOCKING.md)
-- [Release and Debian packaging](RELEASE.md)
+- [Command cheat sheet](docs/CHEATSHEET.md)
+- [Manual test playbook](docs/TESTING.md)
+- [GPG signing and publication order](docs/SIGNING.md)
+- [Repository locking](docs/LOCKING.md)
+- [Release and Debian packaging](docs/RELEASE.md)
 
 Licensed under the MIT License. See [LICENSE](LICENSE).
