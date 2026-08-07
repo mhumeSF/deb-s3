@@ -27,7 +27,7 @@ output_directory="${OUTPUT_DIR:-dist}"
 mkdir -p "${output_directory}"
 output_directory="$(cd "${output_directory}" && pwd)"
 
-ldflags="-s -w -X github.com/deb-s3/deb-s3/internal/buildinfo.Version=${VERSION}"
+ldflags="-s -w -X github.com/mhumesf/deb-s3/internal/buildinfo.Version=${VERSION}"
 for architecture in amd64 arm64; do
     binary="${output_directory}/deb-s3_linux_${architecture}"
     CGO_ENABLED=0 GOOS=linux GOARCH="${architecture}" \
