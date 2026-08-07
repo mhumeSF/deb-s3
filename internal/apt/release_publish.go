@@ -8,7 +8,7 @@ import (
 	"path"
 	"slices"
 
-	"github.com/mhumesf/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3-go/internal/storage"
 )
 
 func (r *Release) ValidateOtherManifests(ctx context.Context, onTransfer func(string)) error {

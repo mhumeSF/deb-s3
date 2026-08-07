@@ -1,4 +1,4 @@
-module github.com/mhumesf/deb-s3
+module github.com/mhumesf/deb-s3-go
 
 go 1.24.0
 

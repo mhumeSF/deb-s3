@@ -6,8 +6,8 @@ checksum file:
 ```text
 dist/deb-s3_linux_amd64
 dist/deb-s3_linux_arm64
-dist/deb-s3_<version>_amd64.deb
-dist/deb-s3_<version>_arm64.deb
+dist/deb-s3-go_<version>_amd64.deb
+dist/deb-s3-go_<version>_arm64.deb
 dist/checksums.txt
 ```
 

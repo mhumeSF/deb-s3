@@ -7,8 +7,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/mhumesf/deb-s3/internal/apt"
-	"github.com/mhumesf/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3-go/internal/apt"
+	"github.com/mhumesf/deb-s3-go/internal/storage"
 )
 
 type Progress struct {
