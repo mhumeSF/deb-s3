@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mhumesf/deb-s3/internal/apt"
-	"github.com/mhumesf/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3-go/internal/apt"
+	"github.com/mhumesf/deb-s3-go/internal/storage"
 )
 
 var ErrPackageNotFound = errors.New("no such package found")

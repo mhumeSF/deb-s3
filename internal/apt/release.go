@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhumesf/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3-go/internal/storage"
 )
 
 var releaseArchitectures = []string{"amd64", "i386", "armhf", "arm64"}

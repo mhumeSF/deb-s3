@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhumesf/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3-go/internal/storage"
 )
 
 type ManifestArtifact struct {

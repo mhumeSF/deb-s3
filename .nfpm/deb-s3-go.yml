@@ -1,14 +1,14 @@
 ---
-name: deb-s3
+name: deb-s3-go
 arch: ${GOARCH}
 platform: linux
 version: ${VERSION}
 version_schema: none
 section: admin
 priority: optional
-maintainer: Stefan Heitmüller <stefan.heitmueller@gmx.com>
+maintainer: Mike Hume <mhume@category.xyz>
 description: Create and manage APT repositories on S3
-homepage: https://github.com/mhumesf/deb-s3
+homepage: https://github.com/mhumesf/deb-s3-go
 license: MIT
 recommends:
   - gnupg

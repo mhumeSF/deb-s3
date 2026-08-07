@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhumesf/deb-s3/internal/apt"
-	"github.com/mhumesf/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3-go/internal/apt"
+	"github.com/mhumesf/deb-s3-go/internal/storage"
 )
 
 func TestCopySelectedVersionsIsMetadataOnly(t *testing.T) {

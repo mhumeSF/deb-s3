@@ -18,7 +18,7 @@ import (
 	"strings"
 
 	"github.com/klauspost/compress/zstd"
-	"github.com/mhumesf/deb-s3/internal/apt"
+	"github.com/mhumesf/deb-s3-go/internal/apt"
 	"github.com/ulikunitz/xz"
 )
 

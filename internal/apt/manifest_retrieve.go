@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mhumesf/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3-go/internal/storage"
 )
 
 func RetrieveManifest(ctx context.Context, store storage.Store, options ManifestOptions) (*Manifest, error) {

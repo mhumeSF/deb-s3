@@ -27,7 +27,7 @@ output_directory="${OUTPUT_DIR:-dist}"
 mkdir -p "${output_directory}"
 output_directory="$(cd "${output_directory}" && pwd)"
 
-ldflags="-s -w -X github.com/deb-s3/deb-s3/internal/buildinfo.Version=${VERSION}"
+ldflags="-s -w -X github.com/mhumesf/deb-s3-go/internal/buildinfo.Version=${VERSION}"
 for architecture in amd64 arm64; do
     binary="${output_directory}/deb-s3_linux_${architecture}"
     CGO_ENABLED=0 GOOS=linux GOARCH="${architecture}" \
@@ -38,14 +38,14 @@ for architecture in amd64 arm64; do
     nfpm package \
         --config .nfpm/deb-s3-go.yml \
         --packager deb \
-        --target "${output_directory}/deb-s3_${VERSION}_${architecture}.deb"
+        --target "${output_directory}/deb-s3-go_${VERSION}_${architecture}.deb"
 done
 
 artifact_names=(
     "deb-s3_linux_amd64"
     "deb-s3_linux_arm64"
-    "deb-s3_${VERSION}_amd64.deb"
-    "deb-s3_${VERSION}_arm64.deb"
+    "deb-s3-go_${VERSION}_amd64.deb"
+    "deb-s3-go_${VERSION}_arm64.deb"
 )
 if command -v sha256sum >/dev/null 2>&1; then
     (cd "${output_directory}" && sha256sum "${artifact_names[@]}") >"${output_directory}/checksums.txt"
