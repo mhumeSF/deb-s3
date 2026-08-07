@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/mhumesf/deb-s3/internal/apt"
+	"github.com/mhumesf/deb-s3-go/internal/apt"
 )
 
 type GPGSigner struct {

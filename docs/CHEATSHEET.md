@@ -225,8 +225,8 @@ Generated under `dist/`:
 ```text
 deb-s3_linux_amd64
 deb-s3_linux_arm64
-deb-s3_1.0.0_amd64.deb
-deb-s3_1.0.0_arm64.deb
+deb-s3-go_1.0.0_amd64.deb
+deb-s3-go_1.0.0_arm64.deb
 checksums.txt
 ```
 

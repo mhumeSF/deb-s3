@@ -5,7 +5,7 @@ RUN go mod download
 COPY . .
 ARG VERSION=devel
 RUN CGO_ENABLED=0 go build -trimpath \
-    -ldflags "-s -w -X github.com/mhumesf/deb-s3/internal/buildinfo.Version=${VERSION}" \
+    -ldflags "-s -w -X github.com/mhumesf/deb-s3-go/internal/buildinfo.Version=${VERSION}" \
     -o /out/deb-s3 ./cmd/deb-s3
 
 FROM alpine:3.24

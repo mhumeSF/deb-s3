@@ -7,9 +7,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/mhumesf/deb-s3/internal/buildinfo"
-	"github.com/mhumesf/deb-s3/internal/config"
-	"github.com/mhumesf/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3-go/internal/buildinfo"
+	"github.com/mhumesf/deb-s3-go/internal/config"
+	"github.com/mhumesf/deb-s3-go/internal/storage"
 	"github.com/spf13/cobra"
 )
 

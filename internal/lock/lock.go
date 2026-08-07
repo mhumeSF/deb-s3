@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhumesf/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3-go/internal/storage"
 )
 
 var ErrLocked = errors.New("repository is locked")

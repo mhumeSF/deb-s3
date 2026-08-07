@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhumesf/deb-s3/internal/apt"
-	"github.com/mhumesf/deb-s3/internal/config"
-	repolock "github.com/mhumesf/deb-s3/internal/lock"
-	"github.com/mhumesf/deb-s3/internal/storage"
+	"github.com/mhumesf/deb-s3-go/internal/apt"
+	"github.com/mhumesf/deb-s3-go/internal/config"
+	repolock "github.com/mhumesf/deb-s3-go/internal/lock"
+	"github.com/mhumesf/deb-s3-go/internal/storage"
 	"github.com/spf13/cobra"
 )
 

@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
-	appconfig "github.com/mhumesf/deb-s3/internal/config"
+	appconfig "github.com/mhumesf/deb-s3-go/internal/config"
 )
 
 type fakeS3 struct {

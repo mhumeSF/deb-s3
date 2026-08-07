@@ -25,7 +25,7 @@ jobs:
       - name: Test amd64 package
         run: |
           mise implode
-          sudo apt-get install ./dist/deb-s3_*_amd64.deb
+          sudo apt-get install ./dist/deb-s3-go_*_amd64.deb
           test "$(deb-s3 --version)" = "deb-s3 version ${GITHUB_REF_NAME#v}"
           deb-s3 --help >/dev/null
       - name: Preserve Debian packages as workflow artifacts

@@ -55,9 +55,10 @@ jobs:
         run: cd dist && sha256sum --check checksums.txt
       - name: Inspect Debian packages
         run: |
-          dpkg-deb --info dist/deb-s3_0.0.0-ci_amd64.deb
-          dpkg-deb --info dist/deb-s3_0.0.0-ci_arm64.deb
+          dpkg-deb --info dist/deb-s3-go_0.0.0-ci_amd64.deb
+          dpkg-deb --info dist/deb-s3-go_0.0.0-ci_arm64.deb
       - name: Install amd64 package
         run: |
-          sudo apt-get install ./dist/deb-s3_0.0.0-ci_amd64.deb
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get install -y ./dist/deb-s3-go_0.0.0-ci_amd64.deb
           test "$(deb-s3 --version)" = "deb-s3 version 0.0.0-ci"
